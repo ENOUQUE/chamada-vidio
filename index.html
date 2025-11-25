@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" /><!DOCTYPE html>
-<html lang="pt-BR">
-<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -579,12 +576,17 @@
         console.log('Iniciando carregamento do vídeo remoto...');
         console.log('URL do vídeo:', REMOTE_VIDEO_URL);
         
-        remoteVideoPlaceholder.style.display = 'flex';
-        remoteVideo.style.display = 'none';
-        remoteVideoPlaceholder.textContent = 'Carregando vídeo...';
-
         // Obter referência do elemento
         const remoteVideoElement = document.getElementById('remoteVideo');
+        
+        if (!remoteVideoElement) {
+          console.error('Elemento remoteVideo não encontrado!');
+          return;
+        }
+        
+        remoteVideoPlaceholder.style.display = 'flex';
+        remoteVideoElement.style.display = 'none';
+        remoteVideoPlaceholder.textContent = 'Carregando vídeo...';
         
         // Configurar vídeo
         remoteVideoElement.loop = true;
@@ -710,18 +712,36 @@
 
         // Aguardar um pouco antes de tentar reproduzir
         await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Fallback: se após 3 segundos o vídeo não estiver visível, forçar exibição
+        setTimeout(() => {
+          if (remoteVideoElement.style.display === 'none' || 
+              remoteVideoElement.style.display === '') {
+            console.log('Forçando exibição do vídeo (fallback)');
+            remoteVideoPlaceholder.style.display = 'none';
+            remoteVideoElement.style.display = 'block';
+            remoteVideoElement.style.opacity = '1';
+          }
+        }, 3000);
 
         // Tentar reproduzir o vídeo
         try {
-          await remoteVideoElement.play();
+          const playPromise = remoteVideoElement.play();
+          
+          if (playPromise !== undefined) {
+            await playPromise;
+          }
+          
           console.log('Vídeo reproduzindo com sucesso');
           remoteVideoPlaceholder.style.display = 'none';
           remoteVideoElement.style.display = 'block';
+          remoteVideoElement.style.opacity = '1';
           
           // Tentar desmutar após iniciar (alguns navegadores permitem)
           setTimeout(() => {
             try {
               remoteVideoElement.muted = false;
+              console.log('Vídeo desmutado');
             } catch (e) {
               console.log('Não foi possível desmutar o vídeo:', e);
             }
@@ -737,25 +757,41 @@
               await remoteVideoElement.play();
               remoteVideoPlaceholder.style.display = 'none';
               remoteVideoElement.style.display = 'block';
+              remoteVideoElement.style.opacity = '1';
+              console.log('Vídeo reproduzindo com muted');
             } catch (mutedError) {
               console.warn('Erro mesmo com muted:', mutedError);
+              // Ainda assim, mostrar o vídeo
+              remoteVideoPlaceholder.style.display = 'none';
+              remoteVideoElement.style.display = 'block';
               showPlayButton();
             }
           } else {
+            // Ainda assim, mostrar o vídeo
+            remoteVideoPlaceholder.style.display = 'none';
+            remoteVideoElement.style.display = 'block';
             showPlayButton();
           }
         }
 
         function showPlayButton() {
-          remoteVideoPlaceholder.textContent = 'Clique para reproduzir';
+          // Mostrar o vídeo mesmo que precise de clique
+          remoteVideoElement.style.display = 'block';
+          remoteVideoElement.style.opacity = '0.7';
+          
+          // Adicionar overlay de play
+          remoteVideoPlaceholder.textContent = '▶ Clique para reproduzir';
           remoteVideoPlaceholder.style.display = 'flex';
           remoteVideoPlaceholder.style.cursor = 'pointer';
+          remoteVideoPlaceholder.style.background = 'rgba(0, 0, 0, 0.5)';
           remoteVideoPlaceholder.onclick = async () => {
             try {
               await remoteVideoElement.play();
               remoteVideoPlaceholder.style.display = 'none';
               remoteVideoElement.style.display = 'block';
+              remoteVideoElement.style.opacity = '1';
               remoteVideoPlaceholder.onclick = null;
+              console.log('Vídeo reproduzido após clique');
             } catch (e) {
               console.error('Erro ao reproduzir:', e);
               remoteVideoPlaceholder.textContent = 'Erro ao reproduzir. Tente novamente.';
@@ -1198,575 +1234,3 @@
   </script>
 </body>
 </html>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Chamada de Vídeo</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background: #0b141a;
-      color: #fff;
-      overflow: hidden;
-      height: 100vh;
-    }
-
-    .video-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      background: #000;
-    }
-
-    .remote-video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: #0b141a;
-    }
-
-    .local-video {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      width: 120px;
-      height: 160px;
-      border-radius: 12px;
-      object-fit: cover;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      background: #1e2328;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-      z-index: 10;
-    }
-
-    .controls-container {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-      padding: 20px;
-      z-index: 20;
-    }
-
-    .controls-wrapper {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .control-btn {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 24px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    .control-btn:hover {
-      transform: scale(1.1);
-    }
-
-    .control-btn:active {
-      transform: scale(0.95);
-    }
-
-    .btn-mute {
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
-    }
-
-    .btn-mute.active {
-      background: #f44336;
-      color: #fff;
-    }
-
-    .btn-video {
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
-    }
-
-    .btn-video.active {
-      background: #f44336;
-      color: #fff;
-    }
-
-    .btn-end {
-      background: #f44336;
-      color: #fff;
-    }
-
-    .btn-switch {
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
-    }
-
-    .status-bar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 0, 0, 0.5);
-      padding: 12px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      z-index: 15;
-    }
-
-    .call-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 18px;
-    }
-
-    .call-details h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-
-    .call-details p {
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.7);
-    }
-
-    .timer {
-      font-size: 14px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    .modal-content {
-      background: #1e2328;
-      border-radius: 16px;
-      padding: 32px;
-      max-width: 400px;
-      width: 100%;
-      text-align: center;
-    }
-
-    .modal-content h2 {
-      font-size: 24px;
-      margin-bottom: 16px;
-      font-weight: 600;
-    }
-
-    .modal-content p {
-      color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 24px;
-      line-height: 1.5;
-    }
-
-    .modal-btn {
-      background: #25d366;
-      color: #fff;
-      border: none;
-      padding: 14px 32px;
-      border-radius: 24px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      transition: all 0.2s;
-    }
-
-    .modal-btn:hover {
-      background: #20ba5a;
-      transform: scale(1.02);
-    }
-
-    .modal-btn:active {
-      transform: scale(0.98);
-    }
-
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top-color: #fff;
-      animation: spin 1s ease-in-out infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    .no-video {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      background: #0b141a;
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 18px;
-    }
-
-    .error-message {
-      background: #f44336;
-      color: white;
-      padding: 16px;
-      border-radius: 8px;
-      margin-top: 16px;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
-    .error-message h4 {
-      margin-bottom: 8px;
-      font-weight: 600;
-    }
-
-    .error-message ul {
-      margin-left: 20px;
-      margin-top: 8px;
-    }
-
-    .error-message li {
-      margin-bottom: 4px;
-    }
-
-    .warning-box {
-      background: rgba(255, 193, 7, 0.2);
-      border: 1px solid rgba(255, 193, 7, 0.5);
-      color: #ffc107;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    @media (max-width: 640px) {
-      .local-video {
-        width: 100px;
-        height: 133px;
-        top: 16px;
-        right: 16px;
-      }
-
-      .control-btn {
-        width: 48px;
-        height: 48px;
-        font-size: 20px;
-      }
-
-      .controls-wrapper {
-        gap: 12px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <!-- Modal de Início -->
-  <div id="startModal" class="modal">
-    <div class="modal-content">
-      <h2>Chamada de Vídeo</h2>
-      <p>Permita o acesso à sua câmera e microfone para iniciar a chamada.</p>
-      
-      <div id="warningBox" class="warning-box" style="display: none;">
-        <strong>⚠️ Importante:</strong> Para usar em produção, este arquivo precisa ser aberto via HTTPS ou localhost. 
-        Alguns navegadores podem bloquear o acesso à câmera em arquivos locais.
-      </div>
-      
-      <div id="errorContainer"></div>
-      
-      <button id="startCallBtn" class="modal-btn">
-        Iniciar Chamada
-      </button>
-    </div>
-  </div>
-
-  <!-- Interface Principal -->
-  <div id="callInterface" class="video-container" style="display: none;">
-    <!-- Barra de Status -->
-    <div class="status-bar">
-      <div class="call-info">
-        <div class="avatar">C</div>
-        <div class="call-details">
-          <h3>Contato</h3>
-          <p id="callStatus">Conectando...</p>
-        </div>
-      </div>
-      <div class="timer" id="callTimer">00:00</div>
-    </div>
-
-    <!-- Vídeo Remoto -->
-    <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
-    <div id="remoteVideoPlaceholder" class="no-video" style="display: none;">
-      Aguardando vídeo...
-    </div>
-
-    <!-- Vídeo Local -->
-    <video id="localVideo" class="local-video" autoplay playsinline muted></video>
-
-    <!-- Controles -->
-    <div class="controls-container">
-      <div class="controls-wrapper">
-        <button id="muteBtn" class="control-btn btn-mute" title="Microfone">
-          <span id="muteIcon">🎤</span>
-        </button>
-        <button id="videoBtn" class="control-btn btn-video" title="Câmera">
-          <span id="videoIcon">📹</span>
-        </button>
-        <button id="switchCameraBtn" class="control-btn btn-switch" title="Trocar Câmera">
-          🔄
-        </button>
-        <button id="endCallBtn" class="control-btn btn-end" title="Encerrar">
-          📞
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let localStream = null;
-    let remoteStream = null;
-    let peerConnection = null;
-    let callStartTime = null;
-    let timerInterval = null;
-    let isMuted = false;
-    let isVideoOff = false;
-    let currentFacingMode = 'user';
-
-    const startModal = document.getElementById('startModal');
-    const callInterface = document.getElementById('callInterface');
-    const startCallBtn = document.getElementById('startCallBtn');
-    const localVideo = document.getElementById('localVideo');
-    const remoteVideo = document.getElementById('remoteVideo');
-    const remoteVideoPlaceholder = document.getElementById('remoteVideoPlaceholder');
-    const muteBtn = document.getElementById('muteBtn');
-    const videoBtn = document.getElementById('videoBtn');
-    const switchCameraBtn = document.getElementById('switchCameraBtn');
-    const endCallBtn = document.getElementById('endCallBtn');
-    const callStatus = document.getElementById('callStatus');
-    const callTimer = document.getElementById('callTimer');
-
-    // Iniciar chamada
-    startCallBtn.addEventListener('click', async () => {
-      try {
-        startCallBtn.innerHTML = '<span class="loading"></span> Conectando...';
-        startCallBtn.disabled = true;
-
-        // Solicitar acesso à câmera e microfone
-        localStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: currentFacingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
-
-        localVideo.srcObject = localStream;
-
-        // Ocultar modal e mostrar interface
-        startModal.style.display = 'none';
-        callInterface.style.display = 'block';
-
-        // Simular conexão (em produção, aqui você conectaria com WebRTC)
-        setTimeout(() => {
-          callStatus.textContent = 'Conectado';
-          startCallTimer();
-          // Para demonstração, vamos simular um vídeo remoto
-          // Em produção, você usaria WebRTC para receber o stream remoto
-          simulateRemoteVideo();
-        }, 2000);
-
-      } catch (error) {
-        console.error('Erro ao acessar mídia:', error);
-        alert('Erro ao acessar câmera ou microfone. Verifique as permissões.');
-        startCallBtn.innerHTML = 'Tentar Novamente';
-        startCallBtn.disabled = false;
-      }
-    });
-
-    // Simular vídeo remoto (para demonstração)
-    function simulateRemoteVideo() {
-      // Em uma implementação real, você receberia o stream via WebRTC
-      // Aqui estamos apenas mostrando um placeholder
-      remoteVideoPlaceholder.style.display = 'flex';
-      remoteVideo.style.display = 'none';
-    }
-
-    // Timer da chamada
-    function startCallTimer() {
-      callStartTime = Date.now();
-      timerInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-        const minutes = Math.floor(elapsed / 60);
-        const seconds = elapsed % 60;
-        callTimer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-      }, 1000);
-    }
-
-    // Controle de Mute
-    muteBtn.addEventListener('click', () => {
-      if (localStream) {
-        const audioTracks = localStream.getAudioTracks();
-        if (audioTracks.length > 0) {
-          isMuted = !isMuted;
-          audioTracks[0].enabled = !isMuted;
-          muteBtn.classList.toggle('active', isMuted);
-          document.getElementById('muteIcon').textContent = isMuted ? '🔇' : '🎤';
-        }
-      }
-    });
-
-    // Controle de Vídeo
-    videoBtn.addEventListener('click', () => {
-      if (localStream) {
-        const videoTracks = localStream.getVideoTracks();
-        if (videoTracks.length > 0) {
-          isVideoOff = !isVideoOff;
-          videoTracks[0].enabled = !isVideoOff;
-          videoBtn.classList.toggle('active', isVideoOff);
-          document.getElementById('videoIcon').textContent = isVideoOff ? '📵' : '📹';
-          localVideo.style.opacity = isVideoOff ? '0.3' : '1';
-        }
-      }
-    });
-
-    // Trocar Câmera
-    switchCameraBtn.addEventListener('click', async () => {
-      if (localStream) {
-        const videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) {
-          currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-          
-          try {
-            const newStream = await navigator.mediaDevices.getUserMedia({
-              video: {
-                facingMode: currentFacingMode,
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-              },
-              audio: false
-            });
-
-            const newVideoTrack = newStream.getVideoTracks()[0];
-            const sender = localStream.getVideoTracks()[0];
-            
-            if (sender) {
-              localStream.removeTrack(sender);
-              sender.stop();
-            }
-            
-            localStream.addTrack(newVideoTrack);
-            localVideo.srcObject = localStream;
-            
-            newStream.getTracks().forEach(track => {
-              if (track.kind === 'video' && track !== newVideoTrack) {
-                track.stop();
-              }
-            });
-          } catch (error) {
-            console.error('Erro ao trocar câmera:', error);
-          }
-        }
-      }
-    });
-
-    // Encerrar Chamada
-    endCallBtn.addEventListener('click', () => {
-      endCall();
-    });
-
-    function endCall() {
-      // Parar timer
-      if (timerInterval) {
-        clearInterval(timerInterval);
-      }
-
-      // Parar todos os streams
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-      }
-
-      if (remoteStream) {
-        remoteStream.getTracks().forEach(track => track.stop());
-        remoteStream = null;
-      }
-
-      // Limpar vídeos
-      localVideo.srcObject = null;
-      remoteVideo.srcObject = null;
-
-      // Fechar conexão peer (se existir)
-      if (peerConnection) {
-        peerConnection.close();
-        peerConnection = null;
-      }
-
-      // Mostrar modal novamente
-      startModal.style.display = 'flex';
-      callInterface.style.display = 'none';
-      startCallBtn.innerHTML = 'Iniciar Chamada';
-      startCallBtn.disabled = false;
-      callStatus.textContent = 'Conectando...';
-      callTimer.textContent = '00:00';
-      
-      // Resetar estados
-      isMuted = false;
-      isVideoOff = false;
-      muteBtn.classList.remove('active');
-      videoBtn.classList.remove('active');
-      document.getElementById('muteIcon').textContent = '🎤';
-      document.getElementById('videoIcon').textContent = '📹';
-    }
-
-    // Prevenir fechamento acidental
-    window.addEventListener('beforeunload', (e) => {
-      if (localStream) {
-        endCall();
-      }
-    });
-  </script>
-</body>
-</html>
-
