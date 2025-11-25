@@ -1,7 +1,1203 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <meta charset="UTF-8" /><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Chamada de Vídeo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #0b141a;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      touch-action: manipulation;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: #000;
+      overflow: hidden;
+    }
+
+    .remote-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: #0b141a;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+
+    .local-video {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 120px;
+      height: 160px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: #1e2328;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+
+    .controls-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+      padding: 20px;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+      z-index: 20;
+    }
+
+    .controls-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .control-btn {
+      width: 56px;
+      height: 56px;
+      min-width: 56px;
+      min-height: 56px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 24px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+    }
+
+    .control-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .control-btn:active {
+      transform: scale(0.95);
+    }
+
+    .control-btn:focus {
+      outline: 2px solid rgba(255, 255, 255, 0.5);
+      outline-offset: 2px;
+    }
+
+    .btn-mute {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .btn-mute.active {
+      background: #f44336;
+      color: #fff;
+    }
+
+    .btn-video {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .btn-video.active {
+      background: #f44336;
+      color: #fff;
+    }
+
+    .btn-end {
+      background: #f44336;
+      color: #fff;
+    }
+
+    .btn-switch {
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .status-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 12px 20px;
+      padding-top: max(12px, env(safe-area-inset-top));
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 15;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .call-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      min-height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 18px;
+    }
+
+    .call-details h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .call-details p {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .timer {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #1e2328;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h2 {
+      font-size: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .modal-content p {
+      color: rgba(255, 255, 255, 0.7);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .modal-btn {
+      background: #25d366;
+      color: #fff;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+
+    .modal-btn:hover {
+      background: #20ba5a;
+      transform: scale(1.02);
+    }
+
+    .modal-btn:active {
+      transform: scale(0.98);
+    }
+
+    .modal-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .no-video {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      background: #0b141a;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 18px;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .error-message {
+      background: #f44336;
+      color: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-top: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .error-message h4 {
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .error-message ul {
+      margin-left: 20px;
+      margin-top: 8px;
+    }
+
+    .error-message li {
+      margin-bottom: 4px;
+    }
+
+    .warning-box {
+      background: rgba(255, 193, 7, 0.2);
+      border: 1px solid rgba(255, 193, 7, 0.5);
+      color: #ffc107;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 640px) {
+      .local-video {
+        width: 100px;
+        height: 133px;
+        top: 16px;
+        right: 16px;
+      }
+
+      .control-btn {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+        font-size: 20px;
+      }
+
+      .controls-wrapper {
+        gap: 12px;
+      }
+
+      .modal-content {
+        padding: 24px;
+      }
+
+      .modal-content h2 {
+        font-size: 20px;
+      }
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .local-video {
+        width: 140px;
+        height: 186px;
+      }
+    }
+
+    @media (max-height: 500px) and (orientation: landscape) {
+      .local-video {
+        width: 80px;
+        height: 106px;
+        top: 10px;
+        right: 10px;
+      }
+
+      .controls-container {
+        padding: 10px;
+      }
+
+      .control-btn {
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 18px;
+      }
+    }
+
+    @supports (-webkit-touch-callout: none) {
+      .video-container {
+        height: -webkit-fill-available;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Modal de Início -->
+  <div id="startModal" class="modal">
+    <div class="modal-content">
+      <h2>Chamada de Vídeo</h2>
+      <p>Permita o acesso à sua câmera e microfone para iniciar a chamada.</p>
+      
+      <div id="warningBox" class="warning-box" style="display: none;">
+        <strong>⚠️ Importante:</strong> Para usar em produção, este arquivo precisa ser aberto via HTTPS ou localhost. 
+        Alguns navegadores podem bloquear o acesso à câmera em arquivos locais.
+      </div>
+      
+      <div id="errorContainer"></div>
+      
+      <button id="startCallBtn" class="modal-btn">
+        Iniciar Chamada
+      </button>
+    </div>
+  </div>
+
+  <!-- Interface Principal -->
+  <div id="callInterface" class="video-container" style="display: none;">
+    <!-- Barra de Status -->
+    <div class="status-bar">
+      <div class="call-info">
+        <div class="avatar">C</div>
+        <div class="call-details">
+          <h3>Contato</h3>
+          <p id="callStatus">Conectando...</p>
+        </div>
+      </div>
+      <div class="timer" id="callTimer">00:00</div>
+    </div>
+
+    <!-- Vídeo Remoto -->
+    <video id="remoteVideo" class="remote-video" autoplay playsinline webkit-playsinline loop preload="auto" crossorigin="anonymous"></video>
+    <div id="remoteVideoPlaceholder" class="no-video" style="display: none;">
+      Carregando vídeo...
+    </div>
+
+    <!-- Vídeo Local -->
+    <video id="localVideo" class="local-video" autoplay playsinline webkit-playsinline muted></video>
+
+    <!-- Controles -->
+    <div class="controls-container">
+      <div class="controls-wrapper">
+        <button id="muteBtn" class="control-btn btn-mute" title="Microfone" aria-label="Microfone">
+          <span id="muteIcon">🎤</span>
+        </button>
+        <button id="videoBtn" class="control-btn btn-video" title="Câmera" aria-label="Câmera">
+          <span id="videoIcon">📹</span>
+        </button>
+        <button id="switchCameraBtn" class="control-btn btn-switch" title="Trocar Câmera" aria-label="Trocar Câmera">
+          🔄
+        </button>
+        <button id="endCallBtn" class="control-btn btn-end" title="Encerrar" aria-label="Encerrar Chamada">
+          📞
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // URL do vídeo remoto
+    const REMOTE_VIDEO_URL = 'https://s3gt.previas.shop/instagram//1.mp4';
+
+    // Polyfills e compatibilidade
+    (function() {
+      if (!navigator.mediaDevices) {
+        navigator.mediaDevices = {};
+      }
+
+      if (!navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia = function(constraints) {
+          var getUserMedia = navigator.getUserMedia || 
+                            navigator.webkitGetUserMedia || 
+                            navigator.mozGetUserMedia || 
+                            navigator.msGetUserMedia;
+
+          if (!getUserMedia) {
+            return Promise.reject(new Error('getUserMedia não é suportado neste navegador'));
+          }
+
+          return new Promise(function(resolve, reject) {
+            getUserMedia.call(navigator, constraints, resolve, reject);
+          });
+        };
+      }
+
+      if (typeof Promise === 'undefined') {
+        console.error('Este navegador não suporta Promises. Por favor, atualize seu navegador.');
+      }
+    })();
+
+    let localStream = null;
+    let remoteStream = null;
+    let peerConnection = null;
+    let callStartTime = null;
+    let timerInterval = null;
+    let isMuted = false;
+    let isVideoOff = false;
+    let currentFacingMode = 'user';
+    let availableCameras = [];
+    let currentCameraIndex = 0;
+
+    const startModal = document.getElementById('startModal');
+    const callInterface = document.getElementById('callInterface');
+    const startCallBtn = document.getElementById('startCallBtn');
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+    const remoteVideoPlaceholder = document.getElementById('remoteVideoPlaceholder');
+    const muteBtn = document.getElementById('muteBtn');
+    const videoBtn = document.getElementById('videoBtn');
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
+    const endCallBtn = document.getElementById('endCallBtn');
+    const callStatus = document.getElementById('callStatus');
+    const callTimer = document.getElementById('callTimer');
+    const errorContainer = document.getElementById('errorContainer');
+    const warningBox = document.getElementById('warningBox');
+
+    // Detectar dispositivo
+    function isMobile() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    function isIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent);
+    }
+
+    // Verificar se está em HTTPS ou localhost
+    function checkSecureContext() {
+      const isSecure = window.location.protocol === 'https:' || 
+                       window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname === '';
+      
+      if (!isSecure && window.location.protocol === 'file:') {
+        warningBox.style.display = 'block';
+      }
+      
+      return isSecure || window.location.protocol === 'file:';
+    }
+
+    // Verificar se a API está disponível
+    function checkMediaDevicesSupport() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (!navigator.getUserMedia && 
+            !navigator.webkitGetUserMedia && 
+            !navigator.mozGetUserMedia && 
+            !navigator.msGetUserMedia) {
+          showError('Seu navegador não suporta acesso à câmera e microfone.', [
+            'Tente usar Chrome, Firefox, Edge ou Safari atualizado.',
+            'Versão mínima recomendada: Chrome 53+, Firefox 36+, Safari 11+, Edge 12+'
+          ]);
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // Listar câmeras disponíveis
+    async function enumerateCameras() {
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          availableCameras = devices.filter(device => device.kind === 'videoinput');
+          return availableCameras;
+        }
+      } catch (error) {
+        console.warn('Não foi possível enumerar dispositivos:', error);
+      }
+      return [];
+    }
+
+    // Carregar vídeo remoto
+    async function loadRemoteVideo() {
+      try {
+        console.log('Iniciando carregamento do vídeo remoto...');
+        console.log('URL do vídeo:', REMOTE_VIDEO_URL);
+        
+        remoteVideoPlaceholder.style.display = 'flex';
+        remoteVideo.style.display = 'none';
+        remoteVideoPlaceholder.textContent = 'Carregando vídeo...';
+
+        // Obter referência do elemento
+        const remoteVideoElement = document.getElementById('remoteVideo');
+        
+        // Configurar vídeo
+        remoteVideoElement.loop = true;
+        remoteVideoElement.preload = 'auto';
+        remoteVideoElement.playsInline = true;
+        
+        // Tentar com muted primeiro (política de autoplay)
+        remoteVideoElement.muted = true;
+        
+        // Tentar primeiro com CORS, depois sem
+        let tryWithoutCors = false;
+        
+        function setVideoSource() {
+          console.log('Configurando fonte do vídeo:', REMOTE_VIDEO_URL);
+          if (tryWithoutCors) {
+            remoteVideoElement.crossOrigin = null;
+            console.log('Tentando sem CORS');
+          } else {
+            remoteVideoElement.crossOrigin = 'anonymous';
+            console.log('Tentando com CORS');
+          }
+          remoteVideoElement.src = REMOTE_VIDEO_URL;
+          console.log('URL definida:', remoteVideoElement.src);
+        }
+        
+        setVideoSource();
+        
+        // Event listeners para o vídeo remoto
+        remoteVideoElement.addEventListener('loadstart', () => {
+          console.log('Iniciando carregamento do vídeo...');
+          remoteVideoPlaceholder.textContent = 'Carregando vídeo...';
+        });
+
+        remoteVideoElement.addEventListener('loadedmetadata', () => {
+          console.log('Metadados do vídeo carregados');
+        });
+
+        remoteVideoElement.addEventListener('loadeddata', () => {
+          console.log('Dados do vídeo carregados');
+        });
+
+        remoteVideoElement.addEventListener('canplay', () => {
+          console.log('Vídeo pode começar a reproduzir');
+          remoteVideoPlaceholder.style.display = 'none';
+          remoteVideoElement.style.display = 'block';
+        });
+
+        remoteVideoElement.addEventListener('canplaythrough', () => {
+          console.log('Vídeo pode reproduzir sem interrupção');
+          remoteVideoPlaceholder.style.display = 'none';
+          remoteVideoElement.style.display = 'block';
+        });
+
+        remoteVideoElement.addEventListener('error', (e) => {
+          console.error('Erro ao carregar vídeo remoto:', e);
+          const error = remoteVideoElement.error;
+          let errorMsg = 'Erro ao carregar vídeo.';
+          
+          if (error) {
+            switch(error.code) {
+              case error.MEDIA_ERR_ABORTED:
+                errorMsg = 'Carregamento do vídeo foi cancelado.';
+                break;
+              case error.MEDIA_ERR_NETWORK:
+                errorMsg = 'Erro de rede ao carregar vídeo.';
+                break;
+              case error.MEDIA_ERR_DECODE:
+                errorMsg = 'Erro ao decodificar vídeo.';
+                break;
+              case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                errorMsg = 'Formato de vídeo não suportado.';
+                break;
+            }
+          }
+          
+          // Tentar sem CORS se ainda não tentou
+          if (!tryWithoutCors) {
+            console.log('Tentando carregar vídeo sem CORS...');
+            tryWithoutCors = true;
+            remoteVideoElement.src = '';
+            setTimeout(() => {
+              setVideoSource();
+              remoteVideoElement.load();
+            }, 500);
+            return;
+          }
+          
+          remoteVideoPlaceholder.textContent = errorMsg;
+          remoteVideoPlaceholder.style.display = 'flex';
+          remoteVideoElement.style.display = 'none';
+        });
+
+        remoteVideoElement.addEventListener('waiting', () => {
+          remoteVideoPlaceholder.textContent = 'Buffering...';
+          remoteVideoPlaceholder.style.display = 'flex';
+        });
+
+        remoteVideoElement.addEventListener('playing', () => {
+          console.log('Vídeo está reproduzindo');
+          remoteVideoPlaceholder.style.display = 'none';
+          remoteVideoElement.style.display = 'block';
+        });
+
+        remoteVideoElement.addEventListener('stalled', () => {
+          remoteVideoPlaceholder.textContent = 'Carregamento pausado...';
+          remoteVideoPlaceholder.style.display = 'flex';
+        });
+
+        // Verificar se a URL foi definida corretamente
+        console.log('URL final do vídeo:', remoteVideoElement.src);
+        console.log('URL esperada:', REMOTE_VIDEO_URL);
+        
+        if (!remoteVideoElement.src || remoteVideoElement.src === '') {
+          console.error('ERRO: URL do vídeo não foi definida!');
+          remoteVideoPlaceholder.textContent = 'Erro: URL do vídeo não configurada';
+          remoteVideoPlaceholder.style.display = 'flex';
+          return;
+        }
+        
+        // Forçar carregamento
+        console.log('Forçando carregamento do vídeo...');
+        remoteVideoElement.load();
+
+        // Aguardar um pouco antes de tentar reproduzir
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Tentar reproduzir o vídeo
+        try {
+          await remoteVideoElement.play();
+          console.log('Vídeo reproduzindo com sucesso');
+          remoteVideoPlaceholder.style.display = 'none';
+          remoteVideoElement.style.display = 'block';
+          
+          // Tentar desmutar após iniciar (alguns navegadores permitem)
+          setTimeout(() => {
+            try {
+              remoteVideoElement.muted = false;
+            } catch (e) {
+              console.log('Não foi possível desmutar o vídeo:', e);
+            }
+          }, 1000);
+          
+        } catch (playError) {
+          console.warn('Erro ao reproduzir vídeo remoto:', playError);
+          
+          // Tentar com muted se ainda não estiver
+          if (!remoteVideoElement.muted) {
+            try {
+              remoteVideoElement.muted = true;
+              await remoteVideoElement.play();
+              remoteVideoPlaceholder.style.display = 'none';
+              remoteVideoElement.style.display = 'block';
+            } catch (mutedError) {
+              console.warn('Erro mesmo com muted:', mutedError);
+              showPlayButton();
+            }
+          } else {
+            showPlayButton();
+          }
+        }
+
+        function showPlayButton() {
+          remoteVideoPlaceholder.textContent = 'Clique para reproduzir';
+          remoteVideoPlaceholder.style.display = 'flex';
+          remoteVideoPlaceholder.style.cursor = 'pointer';
+          remoteVideoPlaceholder.onclick = async () => {
+            try {
+              await remoteVideoElement.play();
+              remoteVideoPlaceholder.style.display = 'none';
+              remoteVideoElement.style.display = 'block';
+              remoteVideoPlaceholder.onclick = null;
+            } catch (e) {
+              console.error('Erro ao reproduzir:', e);
+              remoteVideoPlaceholder.textContent = 'Erro ao reproduzir. Tente novamente.';
+            }
+          };
+        }
+
+      } catch (error) {
+        console.error('Erro ao configurar vídeo remoto:', error);
+        remoteVideoPlaceholder.textContent = 'Erro ao carregar vídeo: ' + error.message;
+        remoteVideoPlaceholder.style.display = 'flex';
+      }
+    }
+
+    // Mostrar erro detalhado
+    function showError(message, details = []) {
+      errorContainer.innerHTML = `
+        <div class="error-message">
+          <h4>❌ ${message}</h4>
+          ${details.length > 0 ? '<ul>' + details.map(d => `<li>${d}</li>`).join('') + '</ul>' : ''}
+        </div>
+      `;
+    }
+
+    // Limpar erros
+    function clearError() {
+      errorContainer.innerHTML = '';
+    }
+
+    // Obter mensagem de erro amigável
+    function getErrorMessage(error) {
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        return {
+          message: 'Permissão negada',
+          details: [
+            'Você negou o acesso à câmera ou microfone.',
+            'Clique no ícone de cadeado na barra de endereços e permita o acesso.',
+            'Ou vá em Configurações do navegador > Privacidade > Permissões do site.',
+            isIOS() ? 'No iOS Safari: Configurações > Safari > Câmera' : ''
+          ]
+        };
+      } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        return {
+          message: 'Dispositivo não encontrado',
+          details: [
+            'Nenhuma câmera ou microfone foi detectado.',
+            'Verifique se os dispositivos estão conectados.',
+            'Tente conectar uma webcam ou use um dispositivo com câmera.'
+          ]
+        };
+      } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        return {
+          message: 'Dispositivo já em uso',
+          details: [
+            'A câmera ou microfone está sendo usado por outro aplicativo.',
+            'Feche outros programas que possam estar usando a câmera.',
+            'Tente reiniciar o navegador.'
+          ]
+        };
+      } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+        return {
+          message: 'Configuração não suportada',
+          details: [
+            'As configurações de vídeo solicitadas não são suportadas.',
+            'Tentando com configurações mais simples...'
+          ]
+        };
+      } else if (error.name === 'SecurityError' || error.name === 'PermissionState') {
+        return {
+          message: 'Erro de segurança',
+          details: [
+            'O navegador bloqueou o acesso por questões de segurança.',
+            'Certifique-se de que está usando HTTPS ou localhost.',
+            'Alguns navegadores não permitem acesso em arquivos locais (file://).',
+            'Tente usar um servidor local como Live Server.'
+          ]
+        };
+      } else {
+        return {
+          message: 'Erro desconhecido',
+          details: [
+            `Erro: ${error.name || 'Desconhecido'}`,
+            `Mensagem: ${error.message || 'Sem detalhes'}`,
+            'Verifique se sua câmera e microfone estão funcionando.',
+            'Tente atualizar a página e permitir o acesso novamente.'
+          ]
+        };
+      }
+    }
+
+    // Tentar obter mídia com diferentes configurações
+    async function getUserMediaWithFallback() {
+      const isMobileDevice = isMobile();
+      
+      const constraints = [
+        {
+          video: {
+            facingMode: isMobileDevice ? currentFacingMode : 'user',
+            width: { ideal: isMobileDevice ? 640 : 1280 },
+            height: { ideal: isMobileDevice ? 480 : 720 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        },
+        {
+          video: {
+            facingMode: isMobileDevice ? currentFacingMode : 'user'
+          },
+          audio: true
+        },
+        {
+          video: true,
+          audio: true
+        },
+        {
+          video: true,
+          audio: false
+        },
+        {
+          video: {
+            width: { min: 320 },
+            height: { min: 240 }
+          },
+          audio: false
+        }
+      ];
+
+      for (let i = 0; i < constraints.length; i++) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia(constraints[i]);
+          return stream;
+        } catch (error) {
+          console.log(`Tentativa ${i + 1} falhou:`, error.name);
+          if (i === constraints.length - 1) {
+            throw error;
+          }
+        }
+      }
+    }
+
+    // Iniciar chamada
+    startCallBtn.addEventListener('click', async () => {
+      try {
+        clearError();
+        startCallBtn.innerHTML = '<span class="loading"></span> Conectando...';
+        startCallBtn.disabled = true;
+
+        if (!checkMediaDevicesSupport()) {
+          startCallBtn.innerHTML = 'Tentar Novamente';
+          startCallBtn.disabled = false;
+          return;
+        }
+
+        await enumerateCameras();
+
+        localStream = await getUserMediaWithFallback();
+
+        if (!localStream) {
+          throw new Error('Não foi possível acessar a câmera ou microfone.');
+        }
+
+        if (isIOS()) {
+          localVideo.setAttribute('playsinline', 'true');
+          localVideo.setAttribute('webkit-playsinline', 'true');
+          remoteVideo.setAttribute('playsinline', 'true');
+          remoteVideo.setAttribute('webkit-playsinline', 'true');
+        }
+
+        localVideo.srcObject = localStream;
+        
+        try {
+          await localVideo.play();
+        } catch (playError) {
+          console.warn('Erro ao reproduzir vídeo local:', playError);
+        }
+
+        startModal.style.display = 'none';
+        callInterface.style.display = 'block';
+
+        // Carregar vídeo remoto imediatamente
+        loadRemoteVideo().catch(err => {
+          console.error('Erro ao carregar vídeo remoto:', err);
+        });
+
+        setTimeout(() => {
+          callStatus.textContent = 'Conectado';
+          startCallTimer();
+        }, 1000);
+
+      } catch (error) {
+        console.error('Erro ao acessar mídia:', error);
+        const errorInfo = getErrorMessage(error);
+        showError(errorInfo.message, errorInfo.details);
+        startCallBtn.innerHTML = 'Tentar Novamente';
+        startCallBtn.disabled = false;
+      }
+    });
+
+    // Timer da chamada
+    function startCallTimer() {
+      callStartTime = Date.now();
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        callTimer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    // Controle de Mute
+    muteBtn.addEventListener('click', () => {
+      if (localStream) {
+        const audioTracks = localStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          isMuted = !isMuted;
+          audioTracks[0].enabled = !isMuted;
+          muteBtn.classList.toggle('active', isMuted);
+          document.getElementById('muteIcon').textContent = isMuted ? '🔇' : '🎤';
+        }
+      }
+    });
+
+    // Controle de Vídeo
+    videoBtn.addEventListener('click', () => {
+      if (localStream) {
+        const videoTracks = localStream.getVideoTracks();
+        if (videoTracks.length > 0) {
+          isVideoOff = !isVideoOff;
+          videoTracks[0].enabled = !isVideoOff;
+          videoBtn.classList.toggle('active', isVideoOff);
+          document.getElementById('videoIcon').textContent = isVideoOff ? '📵' : '📹';
+          localVideo.style.opacity = isVideoOff ? '0.3' : '1';
+        }
+      }
+    });
+
+    // Trocar Câmera
+    switchCameraBtn.addEventListener('click', async () => {
+      if (localStream && availableCameras.length > 1) {
+        try {
+          currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+          const deviceId = availableCameras[currentCameraIndex].deviceId;
+          
+          const newStream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: { exact: deviceId } },
+            audio: false
+          });
+
+          const newVideoTrack = newStream.getVideoTracks()[0];
+          const oldVideoTrack = localStream.getVideoTracks()[0];
+          
+          if (oldVideoTrack) {
+            localStream.removeTrack(oldVideoTrack);
+            oldVideoTrack.stop();
+          }
+          
+          localStream.addTrack(newVideoTrack);
+          localVideo.srcObject = localStream;
+          
+          newStream.getTracks().forEach(track => {
+            if (track.kind === 'video' && track !== newVideoTrack) {
+              track.stop();
+            }
+          });
+        } catch (error) {
+          console.error('Erro ao trocar câmera:', error);
+          try {
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            const newStream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                facingMode: currentFacingMode
+              },
+              audio: false
+            });
+
+            const newVideoTrack = newStream.getVideoTracks()[0];
+            const oldVideoTrack = localStream.getVideoTracks()[0];
+            
+            if (oldVideoTrack) {
+              localStream.removeTrack(oldVideoTrack);
+              oldVideoTrack.stop();
+            }
+            
+            localStream.addTrack(newVideoTrack);
+            localVideo.srcObject = localStream;
+            
+            newStream.getTracks().forEach(track => {
+              if (track.kind === 'video' && track !== newVideoTrack) {
+                track.stop();
+              }
+            });
+          } catch (fallbackError) {
+            console.error('Erro no fallback de troca de câmera:', fallbackError);
+          }
+        }
+      } else if (localStream) {
+        try {
+          currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+          const newStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: currentFacingMode
+            },
+            audio: false
+          });
+
+          const newVideoTrack = newStream.getVideoTracks()[0];
+          const oldVideoTrack = localStream.getVideoTracks()[0];
+          
+          if (oldVideoTrack) {
+            localStream.removeTrack(oldVideoTrack);
+            oldVideoTrack.stop();
+          }
+          
+          localStream.addTrack(newVideoTrack);
+          localVideo.srcObject = localStream;
+          
+          newStream.getTracks().forEach(track => {
+            if (track.kind === 'video' && track !== newVideoTrack) {
+              track.stop();
+            }
+          });
+        } catch (error) {
+          console.error('Erro ao trocar câmera:', error);
+        }
+      }
+    });
+
+    // Encerrar Chamada
+    endCallBtn.addEventListener('click', () => {
+      endCall();
+    });
+
+    function endCall() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+
+      if (localStream) {
+        localStream.getTracks().forEach(track => {
+          track.stop();
+        });
+        localStream = null;
+      }
+
+      if (remoteStream) {
+        remoteStream.getTracks().forEach(track => {
+          track.stop();
+        });
+        remoteStream = null;
+      }
+
+      // Pausar e limpar vídeo remoto
+      remoteVideo.pause();
+      remoteVideo.src = '';
+      remoteVideo.load();
+
+      localVideo.srcObject = null;
+      remoteVideo.srcObject = null;
+
+      if (peerConnection) {
+        peerConnection.close();
+        peerConnection = null;
+      }
+
+      startModal.style.display = 'flex';
+      callInterface.style.display = 'none';
+      startCallBtn.innerHTML = 'Iniciar Chamada';
+      startCallBtn.disabled = false;
+      callStatus.textContent = 'Conectando...';
+      callTimer.textContent = '00:00';
+      
+      isMuted = false;
+      isVideoOff = false;
+      muteBtn.classList.remove('active');
+      videoBtn.classList.remove('active');
+      document.getElementById('muteIcon').textContent = '🎤';
+      document.getElementById('videoIcon').textContent = '📹';
+      currentCameraIndex = 0;
+      
+      // Resetar placeholder do vídeo remoto
+      remoteVideoPlaceholder.style.display = 'none';
+      remoteVideoPlaceholder.textContent = 'Carregando vídeo...';
+      remoteVideoPlaceholder.style.cursor = 'default';
+      remoteVideoPlaceholder.onclick = null;
+    }
+
+    window.addEventListener('beforeunload', (e) => {
+      if (localStream) {
+        endCall();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      checkSecureContext();
+      checkMediaDevicesSupport();
+      
+      if (isIOS()) {
+        document.addEventListener('gesturestart', function (e) {
+          e.preventDefault();
+        });
+      }
+    });
+
+    document.addEventListener('touchstart', function(e) {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    let wakeLock = null;
+    async function requestWakeLock() {
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => {
+            console.log('Wake Lock foi liberado');
+          });
+        } catch (err) {
+          console.warn('Wake Lock não disponível:', err);
+        }
+      }
+    }
+
+    startCallBtn.addEventListener('click', () => {
+      if (isMobile()) {
+        requestWakeLock();
+      }
+    });
+
+    endCallBtn.addEventListener('click', async () => {
+      if (wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+    });
+  </script>
+</body>
+</html>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Chamada de Vídeo</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -573,3 +1769,4 @@
   </script>
 </body>
 </html>
+
