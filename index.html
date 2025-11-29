@@ -593,8 +593,8 @@
         remoteVideoElement.preload = 'auto';
         remoteVideoElement.playsInline = true;
         
-        // Tentar com muted primeiro (política de autoplay)
-        remoteVideoElement.muted = true;
+        // Tentar primeiro com áudio habilitado
+        remoteVideoElement.muted = false;
         
         // Tentar primeiro com CORS, depois sem
         let tryWithoutCors = false;
@@ -724,52 +724,59 @@
           }
         }, 3000);
 
-        // Tentar reproduzir o vídeo
+        // Tentar reproduzir o vídeo com áudio primeiro
         try {
+          console.log('Tentando reproduzir vídeo com áudio...');
           const playPromise = remoteVideoElement.play();
           
           if (playPromise !== undefined) {
             await playPromise;
           }
           
-          console.log('Vídeo reproduzindo com sucesso');
+          console.log('Vídeo reproduzindo com áudio!');
           remoteVideoPlaceholder.style.display = 'none';
           remoteVideoElement.style.display = 'block';
           remoteVideoElement.style.opacity = '1';
           
-          // Tentar desmutar após iniciar (alguns navegadores permitem)
-          setTimeout(() => {
-            try {
-              remoteVideoElement.muted = false;
-              console.log('Vídeo desmutado');
-            } catch (e) {
-              console.log('Não foi possível desmutar o vídeo:', e);
-            }
-          }, 1000);
+          // Garantir que está sem muted
+          remoteVideoElement.muted = false;
           
         } catch (playError) {
-          console.warn('Erro ao reproduzir vídeo remoto:', playError);
+          console.warn('Erro ao reproduzir vídeo com áudio:', playError);
+          console.log('Tentando reproduzir com muted como fallback...');
           
-          // Tentar com muted se ainda não estiver
-          if (!remoteVideoElement.muted) {
-            try {
-              remoteVideoElement.muted = true;
-              await remoteVideoElement.play();
-              remoteVideoPlaceholder.style.display = 'none';
-              remoteVideoElement.style.display = 'block';
-              remoteVideoElement.style.opacity = '1';
-              console.log('Vídeo reproduzindo com muted');
-            } catch (mutedError) {
-              console.warn('Erro mesmo com muted:', mutedError);
-              // Ainda assim, mostrar o vídeo
-              remoteVideoPlaceholder.style.display = 'none';
-              remoteVideoElement.style.display = 'block';
-              showPlayButton();
+          // Tentar com muted como fallback (política de autoplay)
+          try {
+            remoteVideoElement.muted = true;
+            const mutedPlayPromise = remoteVideoElement.play();
+            
+            if (mutedPlayPromise !== undefined) {
+              await mutedPlayPromise;
             }
-          } else {
+            
+            remoteVideoPlaceholder.style.display = 'none';
+            remoteVideoElement.style.display = 'block';
+            remoteVideoElement.style.opacity = '1';
+            console.log('Vídeo reproduzindo com muted (fallback)');
+            
+            // Tentar desmutar após alguns segundos (alguns navegadores permitem)
+            setTimeout(() => {
+              try {
+                remoteVideoElement.muted = false;
+                console.log('Áudio habilitado após iniciar');
+              } catch (e) {
+                console.log('Não foi possível habilitar áudio:', e);
+                // Mostrar botão para o usuário clicar e habilitar áudio
+                showAudioButton();
+              }
+            }, 2000);
+            
+          } catch (mutedError) {
+            console.warn('Erro mesmo com muted:', mutedError);
             // Ainda assim, mostrar o vídeo
             remoteVideoPlaceholder.style.display = 'none';
             remoteVideoElement.style.display = 'block';
+            remoteVideoElement.muted = false; // Tentar sem muted mesmo assim
             showPlayButton();
           }
         }
@@ -786,17 +793,56 @@
           remoteVideoPlaceholder.style.background = 'rgba(0, 0, 0, 0.5)';
           remoteVideoPlaceholder.onclick = async () => {
             try {
+              remoteVideoElement.muted = false; // Tentar com áudio
               await remoteVideoElement.play();
               remoteVideoPlaceholder.style.display = 'none';
               remoteVideoElement.style.display = 'block';
               remoteVideoElement.style.opacity = '1';
               remoteVideoPlaceholder.onclick = null;
-              console.log('Vídeo reproduzido após clique');
+              console.log('Vídeo reproduzido com áudio após clique');
             } catch (e) {
               console.error('Erro ao reproduzir:', e);
               remoteVideoPlaceholder.textContent = 'Erro ao reproduzir. Tente novamente.';
             }
           };
+        }
+
+        function showAudioButton() {
+          // Criar botão para habilitar áudio
+          const audioButton = document.createElement('div');
+          audioButton.style.cssText = `
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            z-index: 30;
+            backdrop-filter: blur(10px);
+          `;
+          audioButton.textContent = '🔊 Habilitar Áudio';
+          audioButton.onclick = () => {
+            try {
+              remoteVideoElement.muted = false;
+              audioButton.remove();
+              console.log('Áudio habilitado pelo usuário');
+            } catch (e) {
+              console.error('Erro ao habilitar áudio:', e);
+              audioButton.textContent = '❌ Erro ao habilitar áudio';
+            }
+          };
+          document.querySelector('.video-container').appendChild(audioButton);
+          
+          // Remover botão após 10 segundos se não for clicado
+          setTimeout(() => {
+            if (audioButton.parentNode) {
+              audioButton.remove();
+            }
+          }, 10000);
         }
 
       } catch (error) {
